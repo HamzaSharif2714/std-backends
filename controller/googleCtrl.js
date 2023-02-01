@@ -191,7 +191,6 @@ const convertToBase64 = (photoReference) => {
 
 const getGooglePlaces = asyncHandler(async (req, res) => {
   let { lat, lng, type, radius } = req.params;
-
   if (!lat || !lng) {
     return res
       .status(400)
@@ -205,16 +204,8 @@ const getGooglePlaces = asyncHandler(async (req, res) => {
       .status(400)
       .json({ success: false, error: "Radius is required." });
   }
-
-  let results = [];
-  let nextPageToken = "";
   radius = parseInt(radius, 10);
-  let attempts = 0;
-  const maxAttempts = 5;
-  const limit = 60;
-
-  const uniqueResults = new Set();
-
+  let results = [];
   const validType = types.find((t) => t.type === type);
   if (!validType) {
     return res.status(400).json({ success: false, error: "Invalid type" });
@@ -223,41 +214,23 @@ const getGooglePlaces = asyncHandler(async (req, res) => {
   let keywords = validType.keywords;
   let excludeTypes = validType.excludeTypes;
 
-  while (uniqueResults.size < limit && attempts < maxAttempts) {
-    let url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${type}&keyword=${keywords.join(
-      "|"
-    )}&key=${apiKey}`;
-    if (nextPageToken) {
-      url += `&pagetoken=${nextPageToken}`;
-    }
-
-    // Fetch results from API
-    let response = await axios.get(url);
+  while (results.length < 6) {
+    let response = await axios.get(
+      `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${type}&keyword=${keywords.join(
+        "|"
+      )}&key=${apiKey}`
+    );
     if (response.data.status === "OVER_QUERY_LIMIT") {
       return res.status(429).json({
         success: false,
         error: "Over query limit, please try again later",
       });
     }
-    let results = response.data.results;
-    nextPageToken = response.data.next_page_token;
+    console.log("The url are =====>", response.config.url);
+    results = response.data.results;
 
-    // Store unique results in Set object
-    for (const result of results) {
-      uniqueResults.add(result);
-    }
-
-    // Increase the radius if limit is not reached yet
-    if (uniqueResults.size < limit) {
-      radius = radius + 1000;
-    }
-
-    attempts++;
+    radius += 500;
   }
-
-  // Convert unique results back to an array
-  results = [...uniqueResults];
-
   // Filter results by keywords if provided
   if (keywords && typeof keywords === "string") {
     keywords = keywords.split(",");
@@ -277,7 +250,6 @@ const getGooglePlaces = asyncHandler(async (req, res) => {
       );
     });
   }
-
   // Filter out only the required fields from the results
   let selectedFields = [];
   for (const result of results) {
@@ -301,7 +273,8 @@ const getGooglePlaces = asyncHandler(async (req, res) => {
     });
   }
 
-  res.send({
+  return res.status(200).json({
+    success: true,
     data: selectedFields,
     total: selectedFields.length,
   });
@@ -395,7 +368,10 @@ const getPlaceDetails = asyncHandler(async (req, res) => {
 const getAllEvents = asyncHandler(async (req, res) => {
   try {
     const getEvents = await Google.find();
-    res.json(getEvents);
+    if (!getEvents || getEvents.length === 0) {
+      return res.status(404).json({ success: false, error: "No events found" });
+    }
+    res.json({ success: true, data: getEvents });
   } catch (error) {
     throw new Error(error);
   }
@@ -413,7 +389,7 @@ const createEvent = asyncHandler(async (req, res) => {
     fs.unlinkSync(path);
   }
   let google = await Google.create({
-    name: googleData.name,
+    venue_name: googleData.venue_name,
     description: googleData.description,
     image: urls,
     location: {

@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const googleSchema = new mongoose.Schema(
   {
-    name: {
+    venue_name: {
       type: String,
       required: true,
     },
