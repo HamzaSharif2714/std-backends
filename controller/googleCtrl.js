@@ -386,8 +386,13 @@ const createEvent = asyncHandler(async (req, res) => {
     const { path } = file;
     const newPath = await uploader(path);
     urls.push(newPath);
-    fs.unlinkSync(path);
+    try {
+      fs.unlinkSync(path);
+    } catch (error) {
+      console.error(`Error deleting file: ${error}`);
+    }
   }
+
   let google = await Google.create({
     venue_name: googleData.venue_name,
     description: googleData.description,

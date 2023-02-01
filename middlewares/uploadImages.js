@@ -40,7 +40,7 @@ const uploadPlaces = async (req, res, next) => {
         .toFormat("jpeg")
         .jpeg({ quality: 90 })
         .toFile(`public/images/places/${file.filename}`);
-      fs.unlinkSync(`public/images/places/${file.filename}`);
+      await fs.promises.unlink(`public/images/places/${file.filename}`);
     })
   );
   next();
