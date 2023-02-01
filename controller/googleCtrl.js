@@ -292,9 +292,9 @@ const getPlacePhotos = asyncHandler(async (req, res) => {
   }
 
   try {
-    // Use the 'fetch' API to retrieve the place details
+    // Use the 'axios' API to retrieve the place details
     const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?fields=photo&place_id=${place_id}&key=${process.env.GOOGLE_PLACES_API_KEY}`;
-    const detailsResponse = await fetch(detailsUrl);
+    const detailsResponse = await axios(detailsUrl);
     const placeData = await detailsResponse.json();
 
     if (!placeData.result || !placeData.result.photos) {
@@ -308,7 +308,7 @@ const getPlacePhotos = asyncHandler(async (req, res) => {
         `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photo.photo_reference}&key=${process.env.GOOGLE_PLACES_API_KEY}`
     );
     const photoResponses = await Promise.all(
-      photoUrls.map((url) => fetch(url))
+      photoUrls.map((url) => axios(url))
     );
     const images = await Promise.all(
       photoResponses.map((response) => response.arrayBuffer())
