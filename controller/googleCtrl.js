@@ -280,6 +280,55 @@ const getGooglePlaces = asyncHandler(async (req, res) => {
   });
 });
 
+// const getPlacePhotos = asyncHandler(async (req, res) => {
+//   const { place_id } = req.params;
+//   if (!place_id) {
+//     return res
+//       .status(400)
+//       .json({ error: "Missing required parameter 'place_id'" });
+//   }
+//   if (!process.env.GOOGLE_PLACES_API_KEY) {
+//     return res.status(500).json({ error: "API Key is not set" });
+//   }
+
+//   try {
+//     // Use the 'axios' API to retrieve the place details
+//     const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?fields=photo&place_id=${place_id}&key=${process.env.GOOGLE_PLACES_API_KEY}`;
+//     const detailsResponse = await axios(detailsUrl);
+//     const placeData = await detailsResponse.json();
+
+//     if (!placeData.result || !placeData.result.photos) {
+//       return res.status(404).json({ error: "No photos found for this place" });
+//     }
+
+//     // Use Promise.all() to retrieve all of the images in parallel
+//     const photos = placeData.result.photos;
+//     const photoUrls = photos.map(
+//       (photo) =>
+//         `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photo.photo_reference}&key=${process.env.GOOGLE_PLACES_API_KEY}`
+//     );
+//     const photoResponses = await Promise.all(
+//       photoUrls.map((url) => axios(url))
+//     );
+//     const images = await Promise.all(
+//       photoResponses.map((response) => response.arrayBuffer())
+//     );
+
+//     // Process the images in a single step
+//     const placePhotos = images.map((image) => {
+//       const base64 = Buffer.from(image, "binary").toString("base64");
+//       return {
+//         data: base64,
+//         type: "image/jpeg",
+//       };
+//     });
+//     res.json(placePhotos);
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ error: "An unknown error occurred" });
+//   }
+// });
+
 const getPlacePhotos = asyncHandler(async (req, res) => {
   const { place_id } = req.params;
   if (!place_id) {
@@ -292,29 +341,28 @@ const getPlacePhotos = asyncHandler(async (req, res) => {
   }
 
   try {
-    // Use the 'axios' API to retrieve the place details
     const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?fields=photo&place_id=${place_id}&key=${process.env.GOOGLE_PLACES_API_KEY}`;
-    const detailsResponse = await axios(detailsUrl);
-    const placeData = await detailsResponse.json();
+    const detailsResponse = await axios(detailsUrl, {
+      responseType: "arraybuffer",
+    });
+    const placeData = detailsResponse.data;
 
     if (!placeData.result || !placeData.result.photos) {
       return res.status(404).json({ error: "No photos found for this place" });
     }
 
-    // Use Promise.all() to retrieve all of the images in parallel
     const photos = placeData.result.photos;
     const photoUrls = photos.map(
       (photo) =>
         `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photo.photo_reference}&key=${process.env.GOOGLE_PLACES_API_KEY}`
     );
     const photoResponses = await Promise.all(
-      photoUrls.map((url) => axios(url))
+      photoUrls.map((url) => axios(url, { responseType: "arraybuffer" }))
     );
     const images = await Promise.all(
-      photoResponses.map((response) => response.arrayBuffer())
+      photoResponses.map((response) => response.data)
     );
 
-    // Process the images in a single step
     const placePhotos = images.map((image) => {
       const base64 = Buffer.from(image, "binary").toString("base64");
       return {
@@ -325,7 +373,9 @@ const getPlacePhotos = asyncHandler(async (req, res) => {
     res.json(placePhotos);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: "An unknown error occurred" });
+    return res
+      .status(500)
+      .json({ error: "An error occurred while retrieving photos" });
   }
 });
 
