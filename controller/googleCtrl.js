@@ -60,21 +60,11 @@ const types = [
     ],
   },
   {
-    type: "dining",
-    keywords: ["Bar", "bakery", "cafe", "restaurant"],
-    excludeTypes: [
-      "liquor_store",
-      "store",
-      "supermarket",
-      "airport",
-      "convenience_store",
-    ],
-  },
-  {
     type: "art",
     keywords: ["art_gallery", "museum"],
     excludeTypes: ["painter", "lodging"],
   },
+
   {
     type: "entertainment",
     keywords: [
