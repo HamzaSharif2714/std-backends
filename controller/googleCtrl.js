@@ -1,3 +1,4 @@
+const fetch = require("node-fetch");
 const fs = require("fs");
 const cloudinaryUploadImage = require("../utils/cloudinary");
 const Google = require("../models/googleModel");
@@ -269,45 +270,6 @@ const getGooglePlaces = asyncHandler(async (req, res) => {
     total: selectedFields.length,
   });
 });
-// const getPlacePhotos = async (req, res) => {
-//   const { placeId } = req.params;
-
-//   if (!placeId || !apiKey) {
-//     return res.status(400).json({ error: "Missing required parameters" });
-//   }
-//   try {
-//     const detailsResponse = await axios.get(
-//       `https://maps.googleapis.com/maps/api/place/details/json?fields=photo&place_id=${placeId}&key=${apiKey}`
-//     );
-//     const placeData = detailsResponse.data;
-//     if (!placeData.result || !placeData.result.photos) {
-//       return res.status(404).json({ error: "No photos found for this place" });
-//     }
-//     const photoUrls = placeData.result.photos.map(
-//       (photo) =>
-//         `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photo.photo_reference}&key=${apiKey}`
-//     );
-
-//     const photoResponses = await photoUrls.map((url) =>
-//       axios.get(url, { responseType: "arraybuffer" })
-//     );
-
-//     const placePhotos = await photoResponses.map(async (photoResponse) => {
-//       if (!photoResponse.data) {
-//         return { error: "No photo data found" };
-//       }
-//       const buffer = Buffer.from(photoResponse.data, "binary").toString(
-//         "base64"
-//       );
-
-//       return { data: buffer, type: "image/jpeg" };
-//     });
-
-//     res.json(placePhotos);
-//   } catch (error) {
-//     res.status(500).json({ error: "Error fetching photos" });
-//   }
-// };
 
 const getPlacePhotos = async (req, res) => {
   const { placeId } = req.params;
