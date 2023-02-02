@@ -281,7 +281,7 @@ const getPlacePhotos = async (req, res) => {
     const detailsData = await detailsResponse.json();
     const photos = detailsData.result.photos;
 
-    const promises = photos.map((photo) => {
+    const promises = photos?.map((photo) => {
       return fetch(
         `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${photo.width}&photo_reference=${photo.photo_reference}&key=${apiKey}`
       );
@@ -290,7 +290,7 @@ const getPlacePhotos = async (req, res) => {
     const photoResponses = await Promise.all(promises);
 
     const photoData = await Promise.all(
-      photoResponses.map(async (photoResponse) => {
+      photoResponses?.map(async (photoResponse) => {
         const arrayBuffer = await photoResponse.arrayBuffer();
         return Buffer.from(arrayBuffer).toString("base64");
       })
