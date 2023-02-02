@@ -273,6 +273,7 @@ const getGooglePlaces = asyncHandler(async (req, res) => {
 
 const getPlacePhotos = async (req, res) => {
   const { placeId } = req.params;
+
   try {
     const detailsResponse = await fetch(
       `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=photo&key=${apiKey}`
@@ -281,24 +282,23 @@ const getPlacePhotos = async (req, res) => {
     const detailsData = await detailsResponse.json();
     const photos = detailsData.result.photos;
 
-    const promises = photos?.map((photo) => {
-      return fetch(
-        `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${photo.width}&photo_reference=${photo.photo_reference}&key=${apiKey}`
-      );
-    });
-
-    const photoResponses = await Promise.all(promises);
+    if (!photos) {
+      return res.status(404).json({ error: "No photos found for this place" });
+    }
 
     const photoData = await Promise.all(
-      photoResponses?.map(async (photoResponse) => {
+      photos?.map(async (photo) => {
+        const photoResponse = await fetch(
+          `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${photo.width}&photo_reference=${photo.photo_reference}&key=${apiKey}`
+        );
         const arrayBuffer = await photoResponse.arrayBuffer();
         return Buffer.from(arrayBuffer).toString("base64");
       })
     );
-
     res.json(photoData);
   } catch (error) {
     console.error(error);
+    res.status(500).json({ error: "An error occurred while fetching photos" });
   }
 };
 
