@@ -1,4 +1,3 @@
-const Jimp = require("jimp");
 const fs = require("fs");
 const cloudinaryUploadImage = require("../utils/cloudinary");
 const Google = require("../models/googleModel");
