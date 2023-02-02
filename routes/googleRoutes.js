@@ -15,12 +15,9 @@ router.post(
   uploadPlaces,
   createEvent
 );
+
 router.get("/", getAllEvents);
-
 router.get("/:lat/:lng/:type/:radius", getGooglePlaces);
-
-router.get("/:place_id", getPlacePhotos);
-
 router.get("/details/:placeId", getPlaceDetails);
-
+router.get("/:placeId", getPlacePhotos);
 module.exports = router;
