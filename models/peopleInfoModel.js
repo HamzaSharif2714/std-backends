@@ -14,16 +14,7 @@ const peopleInfoSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  age: {
-    min: {
-      type: Number,
-      required: true,
-    },
-    max: {
-      type: Number,
-      required: true,
-    },
-  },
+  age: [{ type: Number }],
 });
 
 module.exports = peopleInfoSchema;
