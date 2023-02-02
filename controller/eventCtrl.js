@@ -1,5 +1,6 @@
 const Event = require("../models/eventModel");
 const asyncHandler = require("express-async-handler");
+const { v4: uuidv4 } = require("uuid");
 const createEvent = asyncHandler(async (req, res) => {
   try {
     const event = new Event({
@@ -18,7 +19,7 @@ const createEvent = asyncHandler(async (req, res) => {
         location: { lat: location.location.lat, lng: location.location.lng },
       })),
       peopleinformations: req.body.peopleinformations.map((peopleInfo) => ({
-        id: peopleInfo.id,
+        id: uuidv4(),
         number: peopleInfo.number,
         gender: peopleInfo.gender,
         age: [peopleInfo.age.min, peopleInfo.age.max],
