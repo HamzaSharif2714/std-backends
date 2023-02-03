@@ -282,7 +282,7 @@ const getPlacePhotos = async (req, res) => {
     const detailsData = await detailsResponse.json();
     const photos = detailsData.result.photos;
 
-    if (!photos) {
+    if (!detailsData.result || !detailsData.result.photos) {
       return res.status(404).json({ error: "No photos found for this place" });
     }
 
