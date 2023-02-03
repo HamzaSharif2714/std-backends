@@ -282,12 +282,12 @@ const getPlacePhotos = async (req, res) => {
     const detailsData = await detailsResponse.json();
     const photos = detailsData.result.photos;
 
-    if (!detailsData.result || !detailsData.result.photos) {
+    if (!photos) {
       return res.status(404).json({ error: "No photos found for this place" });
     }
 
     const photoData = await Promise.all(
-      photos?.map(async (photo) => {
+      photos.map(async (photo) => {
         const photoResponse = await fetch(
           `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${photo.width}&photo_reference=${photo.photo_reference}&key=${apiKey}`
         );
