@@ -279,19 +279,19 @@ const getPlacePhotos = async (req, res) => {
       `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=photo&key=${apiKey}`
     );
 
-    const detailsData = await detailsResponse.json();
-    const photos = detailsData.result.photos;
+    let detailsData = await detailsResponse.json();
+    let photos = detailsData.result.photos;
 
     if (!photos) {
       return res.status(404).json({ error: "No photos found for this place" });
     }
 
-    const photoData = await Promise.all(
-      photos.map(async (photo) => {
-        const photoResponse = await fetch(
+    let photoData = await Promise.all(
+      photos?.map(async (photo) => {
+        let photoResponse = await fetch(
           `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${photo.width}&photo_reference=${photo.photo_reference}&key=${apiKey}`
         );
-        const arrayBuffer = await photoResponse.arrayBuffer();
+        let arrayBuffer = await photoResponse.arrayBuffer();
         return Buffer.from(arrayBuffer).toString("base64");
       })
     );
