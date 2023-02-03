@@ -395,18 +395,28 @@ const createEvent = asyncHandler(async (req, res) => {
     .json({ message: "Google data saved successfully", google });
 });
 const getCurrentLocation = asyncHandler(async (req, res) => {
-  try {
-    const response = await axios.post(
-      `https://www.googleapis.com/geolocation/v1/geolocate?key=${apiKey}`,
-      {
-        considerIp: true,
-      }
-    );
-
-    res.send(response.data);
-  } catch (error) {
-    res.status(500).send({ error });
+  if (req.headers.host.startsWith("localhost")) {
+    return res
+      .status(400)
+      .send({ error: "Cannot retrieve location from localhost" });
   }
+
+  const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+  const url = `http://ip-api.com/json/${ip}`;
+
+  axios
+    .get(url)
+    .then((response) => {
+      const { lat, lon } = response.data;
+      res.send({
+        latitude: lat,
+        longitude: lon,
+      });
+    })
+    .catch((error) => {
+      console.error(error);
+      res.status(500).send({ error: "Failed to retrieve location" });
+    });
 });
 
 // const getCurrentLocation = asyncHandler(async (req, res) => {
