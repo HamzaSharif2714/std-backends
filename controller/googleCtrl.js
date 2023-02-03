@@ -401,7 +401,7 @@ const getCurrentLocation = asyncHandler(async (req, res) => {
       .send({ error: "Cannot retrieve location from localhost" });
   }
 
-  const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+  const ip = req.headers["x-forwarded-for"] || req.ip;
   const url = `http://ip-api.com/json/${ip}`;
 
   axios
