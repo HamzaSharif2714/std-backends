@@ -425,42 +425,6 @@ const getCurrentLocation = asyncHandler(async (req, res) => {
   }
 });
 
-// const getLocationDetails = asyncHandler(async (req, res) => {
-//   const lat = req.params.lat;
-//   const lng = req.params.lng;
-
-//   try {
-//     const response = await axios.get(
-//       `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`
-//     );
-//     const data = response.data;
-//     let city = "";
-//     let area = "";
-
-//     if (data && data.results && data.results.length > 0) {
-//       const addressComponents = data.results[0].address_components;
-//       addressComponents.forEach((component) => {
-//         if (
-//           component.types.includes("administrative_area_level_2") ||
-//           component.types.includes("locality")
-//         ) {
-//           city = component.long_name;
-//         }
-//         if (
-//           component.types.includes("sublocality") ||
-//           component.types.includes("neighborhood")
-//         ) {
-//           area = component.long_name;
-//         }
-//       });
-//     }
-
-//     res.send({ city, area });
-//   } catch (error) {
-//     res.status(500).send({ error });
-//   }
-// });
-
 const getLocationDetails = asyncHandler(async (req, res) => {
   const { lat, lng } = req.params;
   try {
@@ -473,25 +437,25 @@ const getLocationDetails = asyncHandler(async (req, res) => {
         (component) =>
           component.types.includes("administrative_area_level_2") ||
           component.types.includes("locality")
-      )?.long_name || "";
+      )?.long_name || "N/A";
     const area =
       addressComponents.find(
         (component) =>
           component.types.includes("sublocality") ||
           component.types.includes("neighborhood")
-      )?.long_name || "";
+      )?.long_name || "N/A";
     const street =
       addressComponents.find(
         (component) =>
           component.types.includes("route") ||
           component.types.includes("street_address")
-      )?.long_name || "";
+      )?.long_name || "N/A";
     const building =
       addressComponents.find(
         (component) =>
           component.types.includes("premise") ||
           component.types.includes("establishment")
-      )?.long_name || "";
+      )?.long_name || "N/A";
     res.send({ city, area, street, building });
   } catch (error) {
     res.status(500).send({ error });
