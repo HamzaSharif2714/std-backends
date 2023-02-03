@@ -6,6 +6,7 @@ const asyncHandler = require("express-async-handler");
 const apiKey = process.env.GOOGLE_PLACES_API_KEY;
 const axios = require("axios");
 const request = require("request");
+const os = require("os");
 require("dotenv").config();
 
 const types = [
@@ -280,6 +281,9 @@ const getPlacePhotos = async (req, res) => {
     );
 
     let detailsData = await detailsResponse.json();
+    if (detailsData.status === "OVER_QUERY_LIMIT") {
+      return res.status(429).json({ error: "API query limit reached" });
+    }
     let photos = detailsData.result.photos;
 
     if (!photos) {
@@ -319,6 +323,9 @@ const getPlaceDetails = asyncHandler(async (req, res) => {
   try {
     const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?fields=name,formatted_address,rating,formatted_phone_number,website,opening_hours,photos,reviews,geometry/location&place_id=${placeId}&key=${process.env.GOOGLE_PLACES_API_KEY}`;
     const detailsResponse = await axios.get(detailsUrl);
+    if (detailsResponse.status === "OVER_QUERY_LIMIT") {
+      return res.status(429).json({ error: "API query limit reached" });
+    }
     const placeData = detailsResponse.data;
 
     if (!placeData.result) {
@@ -387,10 +394,78 @@ const createEvent = asyncHandler(async (req, res) => {
     .json({ message: "Google data saved successfully", google });
 });
 
+const getCurrentLocation = asyncHandler(async (req, res) => {
+  try {
+    const wifiAccessPoints = [];
+    const interfaces = os.networkInterfaces();
+    for (const [key, values] of Object.entries(interfaces)) {
+      for (const { family, internal, mac } of values) {
+        if (family === "IPv4" && !internal) {
+          wifiAccessPoints.push({
+            macAddress: mac,
+            signalStrength: -30,
+            signalToNoiseRatio: 0,
+          });
+        }
+      }
+    }
+
+    const response = await axios.post(
+      `https://www.googleapis.com/geolocation/v1/geolocate?key=${apiKey}`,
+      {
+        considerIp: true,
+        wifiAccessPoints,
+      }
+    );
+
+    res.send(response.data);
+  } catch (error) {
+    res.status(500).send({ error });
+  }
+});
+
+const getLocationDetails = asyncHandler(async (req, res) => {
+  const lat = req.params.lat;
+  const lng = req.params.lng;
+
+  try {
+    const response = await axios.get(
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`
+    );
+    const data = response.data;
+    let city = "";
+    let area = "";
+
+    if (data && data.results && data.results.length > 0) {
+      const addressComponents = data.results[0].address_components;
+      addressComponents.forEach((component) => {
+        if (
+          component.types.includes("administrative_area_level_2") ||
+          component.types.includes("locality")
+        ) {
+          city = component.long_name;
+        }
+        if (
+          component.types.includes("sublocality") ||
+          component.types.includes("neighborhood")
+        ) {
+          area = component.long_name;
+        }
+      });
+    }
+
+    res.send({ city, area });
+  } catch (error) {
+    res.status(500).send({ error });
+  }
+});
+
 module.exports = {
   getGooglePlaces,
   createEvent,
   getPlacePhotos,
   getPlaceDetails,
   getAllEvents,
+  getCurrentLocation,
+  getLocationDetails,
 };
