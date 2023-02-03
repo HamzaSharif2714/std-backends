@@ -323,10 +323,11 @@ const getPlaceDetails = asyncHandler(async (req, res) => {
   try {
     const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?fields=name,formatted_address,rating,formatted_phone_number,website,opening_hours,photos,reviews,geometry/location&place_id=${placeId}&key=${process.env.GOOGLE_PLACES_API_KEY}`;
     const detailsResponse = await axios.get(detailsUrl);
-    if (detailsResponse.status === "OVER_QUERY_LIMIT") {
+
+    const placeData = detailsResponse.data;
+    if (placeData.status === "OVER_QUERY_LIMIT") {
       return res.status(429).json({ error: "API query limit reached" });
     }
-    const placeData = detailsResponse.data;
 
     if (!placeData.result) {
       return res.status(404).json({ success: false, error: "Place not found" });
