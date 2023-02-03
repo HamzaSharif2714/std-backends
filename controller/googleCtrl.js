@@ -218,10 +218,10 @@ const getGooglePlaces = asyncHandler(async (req, res) => {
         error: "Over query limit, please try again later",
       });
     }
-    console.log("The url are =====>", response.config.url);
+
     results = response.data.results;
 
-    // radius += 500;
+    radius += 500;
   }
   // Filter results by keywords if provided
   if (keywords && typeof keywords === "string") {
@@ -394,60 +394,36 @@ const createEvent = asyncHandler(async (req, res) => {
     .status(201)
     .json({ message: "Google data saved successfully", google });
 });
+
 const getCurrentLocation = asyncHandler(async (req, res) => {
-  if (req.headers.host.startsWith("localhost")) {
-    return res
-      .status(400)
-      .send({ error: "Cannot retrieve location from localhost" });
+  try {
+    const wifiAccessPoints = [];
+    const interfaces = os.networkInterfaces();
+    for (const [key, values] of Object.entries(interfaces)) {
+      for (const { family, internal, mac } of values) {
+        if (family === "IPv4" && !internal) {
+          wifiAccessPoints.push({
+            macAddress: mac,
+            signalStrength: -30,
+            signalToNoiseRatio: 0,
+          });
+        }
+      }
+    }
+
+    const response = await axios.post(
+      `https://www.googleapis.com/geolocation/v1/geolocate?key=${apiKey}`,
+      {
+        considerIp: true,
+        wifiAccessPoints,
+      }
+    );
+
+    res.send(response.data);
+  } catch (error) {
+    res.status(500).send({ error });
   }
-
-  const ip = req.headers["x-forwarded-for"] || req.ip;
-  const url = `http://ip-api.com/json/${ip}`;
-
-  axios
-    .get(url)
-    .then((response) => {
-      const { lat, lon } = response.data;
-      res.send({
-        latitude: lat,
-        longitude: lon,
-      });
-    })
-    .catch((error) => {
-      console.error(error);
-      res.status(500).send({ error: "Failed to retrieve location" });
-    });
 });
-
-// const getCurrentLocation = asyncHandler(async (req, res) => {
-//   try {
-//     const wifiAccessPoints = [];
-//     const interfaces = os.networkInterfaces();
-//     for (const [key, values] of Object.entries(interfaces)) {
-//       for (const { family, internal, mac } of values) {
-//         if (family === "IPv4" && !internal) {
-//           wifiAccessPoints.push({
-//             macAddress: mac,
-//             signalStrength: -30,
-//             signalToNoiseRatio: 0,
-//           });
-//         }
-//       }
-//     }
-
-//     const response = await axios.post(
-//       `https://www.googleapis.com/geolocation/v1/geolocate?key=${apiKey}`,
-//       {
-//         considerIp: true,
-//         wifiAccessPoints,
-//       }
-//     );
-
-//     res.send(response.data);
-//   } catch (error) {
-//     res.status(500).send({ error });
-//   }
-// });
 
 const getLocationDetails = asyncHandler(async (req, res) => {
   const lat = req.params.lat;
