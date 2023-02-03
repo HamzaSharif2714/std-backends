@@ -6,7 +6,6 @@ const createEvent = asyncHandler(async (req, res) => {
     const event = new Event({
       title: req.body.title,
       description: req.body.description,
-      location: req.body.location,
       time: req.body.time,
       date: req.body.date,
       isthisDate: req.body.isthisDate,
