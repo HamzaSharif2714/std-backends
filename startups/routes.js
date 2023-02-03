@@ -6,6 +6,7 @@ const cors = require("cors");
 const googleRouter = require("../routes/googleRoutes");
 const friendRouter = require("../routes/friendListRoutes");
 const eventRouter = require("../routes/eventRoutes");
+const categoryRouter = require("../routes/categoryRoutes");
 const { notFound, errorHandler } = require("../middlewares/errorHandler");
 
 module.exports = function (app) {
@@ -17,6 +18,7 @@ module.exports = function (app) {
   app.use("/api/google", googleRouter);
   app.use("/api/friends", friendRouter);
   app.use("/api/events", eventRouter);
+  app.use("/api/category", categoryRouter);
 
   app.use(notFound);
   app.use(errorHandler);
