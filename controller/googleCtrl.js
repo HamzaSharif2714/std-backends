@@ -394,28 +394,12 @@ const createEvent = asyncHandler(async (req, res) => {
     .status(201)
     .json({ message: "Google data saved successfully", google });
 });
-
 const getCurrentLocation = asyncHandler(async (req, res) => {
   try {
-    const wifiAccessPoints = [];
-    const interfaces = os.networkInterfaces();
-    for (const [key, values] of Object.entries(interfaces)) {
-      for (const { family, internal, mac } of values) {
-        if (family === "IPv4" && !internal) {
-          wifiAccessPoints.push({
-            macAddress: mac,
-            signalStrength: -30,
-            signalToNoiseRatio: 0,
-          });
-        }
-      }
-    }
-
     const response = await axios.post(
       `https://www.googleapis.com/geolocation/v1/geolocate?key=${apiKey}`,
       {
         considerIp: true,
-        wifiAccessPoints,
       }
     );
 
@@ -424,6 +408,36 @@ const getCurrentLocation = asyncHandler(async (req, res) => {
     res.status(500).send({ error });
   }
 });
+
+// const getCurrentLocation = asyncHandler(async (req, res) => {
+//   try {
+//     const wifiAccessPoints = [];
+//     const interfaces = os.networkInterfaces();
+//     for (const [key, values] of Object.entries(interfaces)) {
+//       for (const { family, internal, mac } of values) {
+//         if (family === "IPv4" && !internal) {
+//           wifiAccessPoints.push({
+//             macAddress: mac,
+//             signalStrength: -30,
+//             signalToNoiseRatio: 0,
+//           });
+//         }
+//       }
+//     }
+
+//     const response = await axios.post(
+//       `https://www.googleapis.com/geolocation/v1/geolocate?key=${apiKey}`,
+//       {
+//         considerIp: true,
+//         wifiAccessPoints,
+//       }
+//     );
+
+//     res.send(response.data);
+//   } catch (error) {
+//     res.status(500).send({ error });
+//   }
+// });
 
 const getLocationDetails = asyncHandler(async (req, res) => {
   const lat = req.params.lat;
