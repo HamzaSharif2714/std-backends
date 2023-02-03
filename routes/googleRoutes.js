@@ -29,7 +29,7 @@ router.post(
   createEvent
 );
 
-router.get("/geolocate", getCurrentLocation);
+router.post("/geolocate", getCurrentLocation);
 router.get("/location/:lat/:lng", getLocationDetails);
 router.get("/", getAllEvents);
 router.get("/:lat/:lng/:type/:radius", getGooglePlaces);
