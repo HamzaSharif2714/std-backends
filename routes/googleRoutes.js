@@ -17,11 +17,11 @@ router.post(
   uploadPlaces,
   createEvent
 );
+router.post("/:lat/:lng", getGooglePlaces);
 
 router.get("/geolocate", getCurrentLocation);
 router.get("/location/:lat/:lng", getLocationDetails);
 router.get("/", getAllEvents);
-router.get("/:lat/:lng", getGooglePlaces);
 router.get("/details/:placeId", getPlaceDetails);
 router.get("/:placeId", getPlacePhotos);
 module.exports = router;

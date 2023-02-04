@@ -212,13 +212,13 @@ const getGooglePlaces = asyncHandler(async (req, res) => {
   results = response.data.results;
   next_page_token = response.data.next_page_token;
   if (response.data.status === "ZERO_RESULTS") {
-    return res.status(404).json({
+    return res.status(204).json({
       success: false,
       error: "No places found in this radius ",
     });
   }
   if (response.data.status === "INVALID_REQUEST") {
-    return res.status(404).json({
+    return res.status(400).json({
       success: false,
       error:
         "API request was malformed, generally due to missing required query parameter ",
@@ -232,13 +232,13 @@ const getGooglePlaces = asyncHandler(async (req, res) => {
   }
 
   if (response.data.status === "REQUEST_DENIED") {
-    return res.status(404).json({
+    return res.status(403).json({
       success: false,
       error: "The request is missing an API key or key parameter is invalid ",
     });
   }
   if (response.data.status === "UNKNOWN_ERROR") {
-    return res.status(404).json({
+    return res.status(500).json({
       success: false,
       error: " Unknown error ",
     });
@@ -308,14 +308,40 @@ const getPlacePhotos = async (req, res) => {
     );
 
     let detailsData = await detailsResponse.json();
+    if (detailsData.status === "ZERO_RESULTS") {
+      return res.status(204).json({
+        success: false,
+        error: "No photos found for this place",
+      });
+    }
+    if (detailsData.status === "INVALID_REQUEST") {
+      return res.status(400).json({
+        success: false,
+        error:
+          "API request was malformed, generally due to missing required query parameter ",
+      });
+    }
     if (detailsData.status === "OVER_QUERY_LIMIT") {
-      return res.status(429).json({ error: "API query limit reached" });
+      return res.status(429).json({
+        success: false,
+        error: "Over query limit, please try again later",
+      });
     }
-    let photos = detailsData.result.photos;
 
-    if (!photos) {
-      return res.status(404).json({ error: "No photos found for this place" });
+    if (detailsData.status === "REQUEST_DENIED") {
+      return res.status(403).json({
+        success: false,
+        error: "The request is missing an API key or key parameter is invalid ",
+      });
     }
+    if (detailsData.status === "UNKNOWN_ERROR") {
+      return res.status(500).json({
+        success: false,
+        error: " Unknown error ",
+      });
+    }
+
+    let photos = detailsData.result.photos;
 
     let photoData = await Promise.all(
       photos?.map(async (photo) => {
@@ -335,29 +361,50 @@ const getPlacePhotos = async (req, res) => {
 
 const getPlaceDetails = asyncHandler(async (req, res) => {
   const { placeId } = req.params;
-  if (!placeId || !placeId.trim().length || !placeId.trim()) {
-    return res.status(400).json({
-      success: false,
-      error: "Missing or invalid 'placeId' parameter",
-    });
-  }
-  if (!process.env.GOOGLE_PLACES_API_KEY) {
-    return res
-      .status(500)
-      .json({ success: false, error: "API Key is not set" });
-  }
 
   try {
     const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?fields=name,formatted_address,rating,formatted_phone_number,website,opening_hours,photos,reviews,geometry/location&place_id=${placeId}&key=${process.env.GOOGLE_PLACES_API_KEY}`;
     const detailsResponse = await axios.get(detailsUrl);
 
     const placeData = detailsResponse.data;
+    if (placeData.status === "ZERO_RESULTS") {
+      return res.status(204).json({
+        success: false,
+        error:
+          "Place Id, was valid but no longer refers to a valid result. This may occur if the establishment is no longer in business.  ",
+      });
+    }
+    if (placeData.status === "NOT_FOUND") {
+      return res.status(404).json({
+        success: false,
+        error: "Place Id, was not found in the Places database.  ",
+      });
+    }
+    if (placeData.status === "INVALID_REQUEST") {
+      return res.status(400).json({
+        success: false,
+        error:
+          "API request was malformed, generally due to missing required query parameter ",
+      });
+    }
     if (placeData.status === "OVER_QUERY_LIMIT") {
-      return res.status(429).json({ error: "API query limit reached" });
+      return res.status(429).json({
+        success: false,
+        error: "Over query limit, please try again later",
+      });
     }
 
-    if (!placeData.result) {
-      return res.status(404).json({ success: false, error: "Place not found" });
+    if (placeData.status === "REQUEST_DENIED") {
+      return res.status(403).json({
+        success: false,
+        error: "The request is missing an API key or key parameter is invalid ",
+      });
+    }
+    if (placeData.status === "UNKNOWN_ERROR") {
+      return res.status(500).json({
+        success: false,
+        error: " Unknown error ",
+      });
     }
     res.json({ success: true, data: placeData.result });
   } catch (error) {
