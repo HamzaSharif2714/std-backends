@@ -12,8 +12,8 @@ require("dotenv").config();
 const types = [
   {
     type: "dining",
-    keywords: ["bar", "bakery", "cafe", "restaurant"],
-
+    types: "restaurant",
+    keywords: ["bar", "bakery", "cafe"],
     excludeTypes: [
       "liquor_store",
       "store",
@@ -24,7 +24,8 @@ const types = [
   },
   {
     type: "nightlife",
-    keywords: ["night_club", "bar", "casino"],
+    types: "night_club",
+    keywords: ["bar", "casino"],
     excludeTypes: [
       "liquor_store",
       "atm",
@@ -37,13 +38,13 @@ const types = [
   },
   {
     type: "adventure",
+    types: "zoo",
     keywords: [
       "amusement_park",
       "aquarium",
       "campground",
       "park",
       "tourist_attraction",
-      "zoo",
       "airport",
       "bus_station",
       "light_rail_station",
@@ -62,14 +63,15 @@ const types = [
   },
   {
     type: "art",
-    keywords: ["art_gallery", "museum"],
+    types: "museum",
+    keywords: ["art_gallery"],
     excludeTypes: ["painter", "lodging"],
   },
 
   {
     type: "entertainment",
+    types: "movie_theater",
     keywords: [
-      "movie_theater",
       "stadium",
       "tourist_attraction",
       "museum",
@@ -82,7 +84,8 @@ const types = [
   },
   {
     type: "music",
-    keywords: ["bar", "stadium", "casino", "night_club"],
+    types: "bar",
+    keywords: ["stadium", "casino", "night_club"],
     excludeTypes: [
       "bowling_alley",
       "church",
@@ -97,13 +100,13 @@ const types = [
   },
   {
     type: "casual",
+    types: "cafe",
     keywords: [
       "spa",
       "aquarium",
       "art_gallery",
       "beauty_salon",
       "book_store",
-      "cafe",
       "park",
       "shopping_mall",
       "tourist_attraction",
@@ -113,6 +116,7 @@ const types = [
   },
   {
     type: "celebrations",
+    types: "restaurant",
     keywords: [
       "spa",
       "bar",
@@ -122,7 +126,6 @@ const types = [
       "hindu_temple",
       "lodging",
       "mosque",
-      "restaurant",
       "stadium",
       "synagogue",
       "tourist_attraction",
@@ -140,24 +143,20 @@ const types = [
   },
   {
     type: "gaming",
-    keywords: ["stadium"],
+    types: "stadium",
+    keywords: [],
     excludeTypes: [],
   },
   {
     type: "education",
-    keywords: [
-      "art_gallery",
-      "book_store",
-      "museum",
-      "library",
-      "university",
-      "zoo",
-    ],
+    types: "library",
+    keywords: ["art_gallery", "book_store", "museum", "university", "zoo"],
     excludeTypes: ["supermarket", "convenience_store"],
   },
   {
     type: "sports",
-    keywords: ["stadium", "bowling_alley", "gym", "park", "university"],
+    types: "park",
+    keywords: ["stadium", "bowling_alley", "gym", "university"],
     excludeTypes: ["lodging", "zoo", "amusement_park"],
   },
 ];
@@ -181,75 +180,98 @@ const convertToBase64 = (photoReference) => {
   });
 };
 
+// getting page and pagetoken from body
 const getGooglePlaces = asyncHandler(async (req, res) => {
-  let { lat, lng, type, radius } = req.params;
-  if (!lat || !lng) {
-    return res
-      .status(400)
-      .json({ success: false, error: "Latitude and longitude are required." });
-  }
-  if (!type) {
-    return res.status(400).json({ success: false, error: "Type is required." });
-  }
-  if (!radius) {
-    return res
-      .status(400)
-      .json({ success: false, error: "Radius is required." });
-  }
+  let { lat, lng } = req.params;
+  let { type, radius, page = 1, next_page_token } = req.body;
+
   radius = parseInt(radius, 10);
+  const pageSize = 20;
+
   let results = [];
   const validType = types.find((t) => t.type === type);
   if (!validType) {
     return res.status(400).json({ success: false, error: "Invalid type" });
   }
 
-  let keywords = validType.keywords;
+  let keywords = validType.keywords.join("|");
   let excludeTypes = validType.excludeTypes;
+  let mainType = validType.types;
 
-  while (results.length < 6) {
-    let response = await axios.get(
-      `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${type}&keyword=${keywords.join(
-        "|"
-      )}&key=${apiKey}`
+  let response;
+  if (next_page_token) {
+    response = await axios.get(
+      `https://maps.googleapis.com/maps/api/place/nearbysearch/json?pagetoken=${next_page_token}&key=${apiKey}`
     );
-    if (response.data.status === "OVER_QUERY_LIMIT") {
-      return res.status(429).json({
-        success: false,
-        error: "Over query limit, please try again later",
-      });
+  } else {
+    response = await axios.get(
+      `https://maps.googleapis.com/maps/api/place/nearbysearch/json?type=${mainType}&keyword=${keywords}&location=${lat},${lng}&radius=${radius}&key=${apiKey}`
+    );
+  }
+
+  results = response.data.results;
+  next_page_token = response.data.next_page_token;
+  if (response.data.status === "ZERO_RESULTS") {
+    return res.status(404).json({
+      success: false,
+      error: "No places found in this radius ",
+    });
+  }
+  if (response.data.status === "INVALID_REQUEST") {
+    return res.status(404).json({
+      success: false,
+      error:
+        "API request was malformed, generally due to missing required query parameter ",
+    });
+  }
+  if (response.data.status === "OVER_QUERY_LIMIT") {
+    return res.status(429).json({
+      success: false,
+      error: "Over query limit, please try again later",
+    });
+  }
+
+  if (response.data.status === "REQUEST_DENIED") {
+    return res.status(404).json({
+      success: false,
+      error: "The request is missing an API key or key parameter is invalid ",
+    });
+  }
+  if (response.data.status === "UNKNOWN_ERROR") {
+    return res.status(404).json({
+      success: false,
+      error: " Unknown error ",
+    });
+  }
+
+  const filteredResults = results.filter((result) => {
+    let match = false;
+    for (let i = 0; i < result.types.length; i++) {
+      if (excludeTypes.includes(result.types[i])) {
+        match = true;
+        break;
+      }
     }
+    return !match;
+  });
 
-    results = response.data.results;
+  results = filteredResults;
 
-    radius += 500;
-  }
-  // Filter results by keywords if provided
-  if (keywords && typeof keywords === "string") {
-    keywords = keywords.split(",");
-    results = results.filter((result) => {
-      return keywords.some((keyword) =>
-        result.name.toLowerCase().includes(keyword.toLowerCase())
-      );
-    });
-  }
-
-  // Filter results by excludeTypes if provided
-  if (excludeTypes && typeof excludeTypes === "string") {
-    excludeTypes = excludeTypes.split(",");
-    results = results.filter((result) => {
-      return !excludeTypes.some((excludeType) =>
-        result.types.includes(excludeType)
-      );
-    });
-  }
   // Filter out only the required fields from the results
   let selectedFields = [];
   for (const result of results) {
+    const cache = new Map();
     let image;
     if (result.photos && result.photos.length > 0) {
-      // Get image in base64 format
+      // Check if image is in cache
       const photoReference = result.photos[0].photo_reference;
-      image = await convertToBase64(photoReference);
+      if (cache.has(photoReference)) {
+        image = cache.get(photoReference);
+      } else {
+        // Get image in base64 format
+        image = await convertToBase64(photoReference);
+        cache.set(photoReference, image);
+      }
     }
     // Add result to selectedFields array
     selectedFields.push({
@@ -265,10 +287,15 @@ const getGooglePlaces = asyncHandler(async (req, res) => {
     });
   }
 
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  selectedFields = selectedFields.slice(startIndex, endIndex);
+
   return res.status(200).json({
     success: true,
+    count: selectedFields.length,
+    next_page_token,
     data: selectedFields,
-    total: selectedFields.length,
   });
 });
 
