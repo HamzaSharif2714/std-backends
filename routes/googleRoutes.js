@@ -17,7 +17,7 @@ router.post(
   uploadPlaces,
   createEvent
 );
-router.post("/:lat/:lng", getGooglePlaces);
+router.get("/:lat/:lng/:type/:radius", getGooglePlaces);
 
 router.get("/geolocate", getCurrentLocation);
 router.get("/location/:lat/:lng", getLocationDetails);
