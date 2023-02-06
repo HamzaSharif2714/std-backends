@@ -27,6 +27,10 @@ const googleSchema = new mongoose.Schema(
     google_place_id: {
       type: String,
     },
+    category: {
+      type: String,
+      required: true,
+    },
 
     city: {
       type: String,

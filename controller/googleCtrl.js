@@ -316,12 +316,6 @@ const getGooglePlaces = asyncHandler(async (req, res) => {
     `https://maps.googleapis.com/maps/api/place/nearbysearch/json?type=${mainType}&keyword=${keywords}&location=${lat},${lng}&radius=${radius}&key=${apiKey}`
   );
 
-  if (response.data.status === "ZERO_RESULTS") {
-    return res.status(204).send({
-      success: false,
-      error: "No places found in this radius ",
-    });
-  }
   if (response.data.status === "INVALID_REQUEST") {
     return res.status(400).json({
       success: false,
@@ -333,6 +327,12 @@ const getGooglePlaces = asyncHandler(async (req, res) => {
     return res.status(429).json({
       success: false,
       error: "Over query limit, please try again later",
+    });
+  }
+  if (response.data.status === "ZERO_RESULTS") {
+    return res.status(404).json({
+      success: false,
+      error: "No results found in this radius",
     });
   }
 
@@ -556,6 +556,7 @@ const createEvent = asyncHandler(async (req, res) => {
       lat: googleData.location.lat,
       lng: googleData.location.lng,
     },
+    category: googleData.category,
     city: googleData.city,
     street: googleData.street,
     building: googleData.building,
