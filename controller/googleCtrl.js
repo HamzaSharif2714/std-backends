@@ -180,125 +180,8 @@ const convertToBase64 = (photoReference) => {
   });
 };
 
-// original one
-// const getGooglePlaces = asyncHandler(async (req, res) => {
-//   let { lat, lng } = req.params;
-//   let { type, radius, next_page_token } = req.body;
-
-//   radius = parseInt(radius, 10);
-//   let pageSize = 20;
-//   let page = 1;
-
-//   let results = [];
-//   const validType = types.find((t) => t.type === type);
-//   if (!validType) {
-//     return res.status(400).json({ success: false, error: "Invalid type" });
-//   }
-
-//   let keywords = validType.keywords.join("|");
-//   let excludeTypes = validType.excludeTypes;
-//   let mainType = validType.types;
-
-//   let response;
-//   if (next_page_token) {
-//     response = await axios.get(
-//       `https://maps.googleapis.com/maps/api/place/nearbysearch/json?pagetoken=${next_page_token}&key=${apiKey}`
-//     );
-//   } else {
-//     response = await axios.get(
-//       `https://maps.googleapis.com/maps/api/place/nearbysearch/json?type=${mainType}&keyword=${keywords}&location=${lat},${lng}&radius=${radius}&key=${apiKey}`
-//     );
-//   }
-//   if (response.data.status === "ZERO_RESULTS") {
-//     return res.status(204).send({
-//       success: false,
-//       error: "No places found in this radius ",
-//     });
-//   }
-//   if (response.data.status === "INVALID_REQUEST") {
-//     return res.status(400).json({
-//       success: false,
-//       error:
-//         "API request was malformed, generally due to missing required query parameter ",
-//     });
-//   }
-//   if (response.data.status === "OVER_QUERY_LIMIT") {
-//     return res.status(429).json({
-//       success: false,
-//       error: "Over query limit, please try again later",
-//     });
-//   }
-
-//   if (response.data.status === "REQUEST_DENIED") {
-//     return res.status(403).json({
-//       success: false,
-//       error: "The request is missing an API key or key parameter is invalid ",
-//     });
-//   }
-//   if (response.data.status === "UNKNOWN_ERROR") {
-//     return res.status(500).json({
-//       success: false,
-//       error: " Unknown error ",
-//     });
-//   }
-//   results = response.data.results;
-//   next_page_token = response.data.next_page_token;
-
-//   const filteredResults = results.filter((result) => {
-//     let match = false;
-//     for (let i = 0; i < result.types.length; i++) {
-//       if (excludeTypes.includes(result.types[i])) {
-//         match = true;
-//         break;
-//       }
-//     }
-//     return !match;
-//   });
-
-//   results = filteredResults;
-
-//   // Filter out only the required fields from the results
-//   let imagePromises = [];
-//   for (const result of results) {
-//     if (result.photos && result.photos.length > 0) {
-//       const photoReference = result.photos[0].photo_reference;
-//       imagePromises.push(convertToBase64(photoReference));
-//     } else {
-//       imagePromises.push(null);
-//     }
-//   }
-
-//   const images = await Promise.all(imagePromises);
-//   let selectedFields = [];
-//   for (let i = 0; i < results.length; i++) {
-//     // Add result to selectedFields array
-//     selectedFields.push({
-//       venue_name: results[i].name,
-//       image: images[i],
-//       google_place_id: results[i].place_id,
-//       description: results[i].vicinity,
-//       location: {
-//         latitude: results[i].geometry.location.lat,
-//         longitude: results[i].geometry.location.lng,
-//       },
-//     });
-//   }
-//   const startIndex = (page - 1) * pageSize;
-//   const endIndex = startIndex + pageSize;
-//   selectedFields = selectedFields.slice(startIndex, endIndex);
-//   return res.status(200).json({
-//     success: true,
-//     data: {
-//       totalResults: selectedFields.length,
-//       next_page_token: next_page_token || null,
-//       places: selectedFields,
-//     },
-//   });
-// });
 const getGooglePlaces = asyncHandler(async (req, res) => {
   let { lat, lng, type, radius } = req.params;
-  // let { type, radius } = req.body;
-
   radius = parseInt(radius, 10);
 
   let results = [];
@@ -384,8 +267,8 @@ const getGooglePlaces = asyncHandler(async (req, res) => {
       google_place_id: results[i].place_id,
       description: results[i].vicinity,
       location: {
-        latitude: results[i].geometry.location.lat,
-        longitude: results[i].geometry.location.lng,
+        lat: results[i].geometry.location.lat,
+        lng: results[i].geometry.location.lng,
       },
     });
   }
@@ -409,7 +292,7 @@ const getPlacePhotos = async (req, res) => {
 
     let detailsData = await detailsResponse.json();
     if (detailsData.status === "ZERO_RESULTS") {
-      return res.status(204).json({
+      return res.status(404).json({
         success: false,
         error: "No photos found for this place",
       });
@@ -468,7 +351,7 @@ const getPlaceDetails = asyncHandler(async (req, res) => {
 
     const placeData = detailsResponse.data;
     if (placeData.status === "ZERO_RESULTS") {
-      return res.status(204).json({
+      return res.status(404).json({
         success: false,
         error:
           "Place Id, was valid but no longer refers to a valid result. This may occur if the establishment is no longer in business.  ",
