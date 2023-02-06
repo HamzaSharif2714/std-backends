@@ -180,13 +180,13 @@ const convertToBase64 = (photoReference) => {
   });
 };
 
-// getting page and pagetoken from body
 const getGooglePlaces = asyncHandler(async (req, res) => {
   let { lat, lng } = req.params;
-  let { type, radius, page = 1, next_page_token } = req.body;
+  let { type, radius, next_page_token } = req.body;
 
   radius = parseInt(radius, 10);
-  const pageSize = 20;
+  let pageSize = 20;
+  let page = 1;
 
   let results = [];
   const validType = types.find((t) => t.type === type);
@@ -208,11 +208,8 @@ const getGooglePlaces = asyncHandler(async (req, res) => {
       `https://maps.googleapis.com/maps/api/place/nearbysearch/json?type=${mainType}&keyword=${keywords}&location=${lat},${lng}&radius=${radius}&key=${apiKey}`
     );
   }
-
-  results = response.data.results;
-  next_page_token = response.data.next_page_token;
   if (response.data.status === "ZERO_RESULTS") {
-    return res.status(204).json({
+    return res.status(204).send({
       success: false,
       error: "No places found in this radius ",
     });
@@ -243,6 +240,8 @@ const getGooglePlaces = asyncHandler(async (req, res) => {
       error: " Unknown error ",
     });
   }
+  results = response.data.results;
+  next_page_token = response.data.next_page_token;
 
   const filteredResults = results.filter((result) => {
     let match = false;
@@ -258,44 +257,41 @@ const getGooglePlaces = asyncHandler(async (req, res) => {
   results = filteredResults;
 
   // Filter out only the required fields from the results
-  let selectedFields = [];
+  let imagePromises = [];
   for (const result of results) {
-    const cache = new Map();
-    let image;
     if (result.photos && result.photos.length > 0) {
-      // Check if image is in cache
       const photoReference = result.photos[0].photo_reference;
-      if (cache.has(photoReference)) {
-        image = cache.get(photoReference);
-      } else {
-        // Get image in base64 format
-        image = await convertToBase64(photoReference);
-        cache.set(photoReference, image);
-      }
+      imagePromises.push(convertToBase64(photoReference));
+    } else {
+      imagePromises.push(null);
     }
-    // Add result to selectedFields array
-    selectedFields.push({
-      venue_name: result.name,
-      image: image,
-      google_place_id: result.place_id,
-      description: result.vicinity,
-      location: {
-        lat: result.geometry.location.lat,
-        lng: result.geometry.location.lng,
-      },
-      types: result.types,
-    });
   }
 
+  const images = await Promise.all(imagePromises);
+  let selectedFields = [];
+  for (let i = 0; i < results.length; i++) {
+    // Add result to selectedFields array
+    selectedFields.push({
+      venue_name: results[i].name,
+      image: images[i],
+      google_place_id: results[i].place_id,
+      description: results[i].vicinity,
+      location: {
+        latitude: results[i].geometry.location.lat,
+        longitude: results[i].geometry.location.lng,
+      },
+    });
+  }
   const startIndex = (page - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   selectedFields = selectedFields.slice(startIndex, endIndex);
-
   return res.status(200).json({
     success: true,
-    count: selectedFields.length,
-    next_page_token,
-    data: selectedFields,
+    data: {
+      totalResults: selectedFields.length,
+      next_page_token: next_page_token || null,
+      places: selectedFields,
+    },
   });
 });
 
